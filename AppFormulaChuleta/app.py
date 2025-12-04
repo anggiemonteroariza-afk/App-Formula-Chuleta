@@ -1,87 +1,106 @@
 import streamlit as st
-from utils.calculos import (
-    obtener_calculo_completo,
-    recalcular_con_agua_manual,
-)
+import pandas as pd
+from utils.calculos import calcular_formula
+from PIL import Image, ImageDraw, ImageFont
+import io
 
-st.set_page_config(page_title="Cálculo de Inyección – Chuleta Ahumada", layout="centered")
+st.set_page_config(page_title="Fórmula Chuleta", layout="centered")
 
-st.title("💧 Cálculo de Inyección para Chuleta Ahumada")
+st.title("🟢 Cálculo de Fórmula para Chuleta Ahumada")
 
-st.markdown("Calculadora completa según tu fórmula real de 16 ingredientes.")
-
-# -------------------------------------------------------
-# 1. Entrada de datos
-# -------------------------------------------------------
-st.subheader("🔢 Datos de entrada")
+# ---- ENTRADAS ----
+st.subheader("Datos del lote")
 
 col1, col2 = st.columns(2)
 
 with col1:
-    cantidad_chuletas = st.number_input(
-        "Cantidad de chuletas a procesar",
-        min_value=0,
-        step=1,
-        format="%d"
+    num_chuletas = st.number_input(
+        "Cantidad de chuletas a procesar:",
+        min_value=1,
+        value=1
     )
 
 with col2:
-    peso_total = st.number_input(
-        "Peso total de la chuleta (kg) – Solo control",
+    peso_chuletas = st.number_input(
+        "Peso total del lote (kg):",
         min_value=0.0,
-        step=0.1,
-        format="%.2f"
+        value=0.0
     )
 
-factor_agua = 3.0  # L por chuleta
+# ---- CÁLCULOS ----
+df, agua_base = calcular_formula(num_chuletas)
 
+st.markdown("---")
+st.subheader("Ingredientes y cantidades")
 
-# -------------------------------------------------------
-# 2. Cálculo automático
-# -------------------------------------------------------
-if cantidad_chuletas > 0:
-    agua_calculada, ingredientes_base = obtener_calculo_completo(
-        cantidad_chuletas,
-        factor_agua
+# Agregamos columna editable para el agua
+df["Cantidad_editada_kg"] = df["Cantidad_base_kg"]
+
+# Ubicar la fila del agua
+agua_idx = df.index[df["Ingrediente"] == "Agua potable"][0]
+
+nuevo_valor_agua = st.number_input(
+    "Editar cantidad de agua (kg/L):",
+    value=float(df.loc[agua_idx, "Cantidad_base_kg"]),
+    min_value=0.0
+)
+
+# Actualizar solo la vista, NO los cálculos
+df.loc[agua_idx, "Cantidad_editada_kg"] = nuevo_valor_agua
+
+# Mostrar tabla final
+st.dataframe(
+    df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
+        .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
+        .style.format({"Cantidad (kg)": "{:.3f}"})
+)
+
+st.markdown("---")
+
+# ---- GENERAR IMAGEN ----
+st.subheader("Descargar imagen del lote")
+
+if st.button("Generar y descargar imagen"):
+    # Crear imagen blanca
+    img = Image.new("RGB", (900, 1400), "white")
+    draw = ImageDraw.Draw(img)
+
+    # Fuente
+    try:
+        font = ImageFont.truetype("arial.ttf", 28)
+    except:
+        font = ImageFont.load_default()
+
+    y = 40
+    draw.text((40, y), f"LOTE DE CHULETAS", font=font, fill="black")
+    y += 50
+    draw.text((40, y), f"Cantidad de chuletas: {num_chuletas}", font=font, fill="black")
+    y += 40
+    draw.text((40, y), f"Peso total ingresado: {peso_chuletas} kg", font=font, fill="black")
+    y += 60
+
+    draw.text((40, y), "Ingredientes (solo número y cantidad):", font=font, fill="black")
+    y += 40
+
+    # Ingredientes numerados sin nombre
+    for i, row in df.iterrows():
+        numero = i + 1
+        cantidad = row["Cantidad_editada_kg"]
+        txt = f"{numero}.  {cantidad:.3f} kg"
+        draw.text((40, y), txt, font=font, fill="black")
+        y += 35
+
+    # Guardar en buffer
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    st.download_button(
+        label="Descargar imagen",
+        data=buffer,
+        file_name="lote_chuletas.png",
+        mime="image/png"
     )
 
-    st.subheader("💧 Agua calculada automáticamente")
-    st.write(f"**{agua_calculada:.2f} L** (3 L por chuleta)")
-
-    # -------------------------------------------------------
-    # 3. Ajuste manual del agua
-    # -------------------------------------------------------
-    st.subheader("✏️ Ajustar agua manualmente (opcional)")
-
-    agua_final = st.number_input(
-        "Cantidad final de agua (L)",
-        value=float(agua_calculada),
-        min_value=0.0,
-        step=0.1,
-        format="%.2f"
-    )
-
-    if agua_final != agua_calculada:
-        ingredientes = recalcular_con_agua_manual(agua_final)
-        st.info("Se recalcularon los ingredientes con el agua editada manualmente.")
-    else:
-        ingredientes = ingredientes_base
-
-    # -------------------------------------------------------
-    # 4. Tabla de ingredientes
-    # -------------------------------------------------------
-    st.subheader("🧂 Ingredientes requeridos")
-
-    tabla = {
-        "Ingrediente": [],
-        "Cantidad (g / ml)": []
-    }
-
-    for nombre, valor in ingredientes.items():
-        tabla["Ingrediente"].append(nombre)
-        tabla["Cantidad (g / ml)"].append(round(valor, 2))
-
-    st.table(tabla)
-
-else:
-    st.warning("Ingresa la cantidad de chuletas para iniciar el cálculo.")
+st.markdown("---")
+st.success("Cálculo completo. Puedes editar el agua sin afectar la fórmula y descargar la imagen del lote.")
