@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.calculos import calcular_formula
+from utils.calculos import obtener_calculo_completo, recalcular_con_agua_manual
 from PIL import Image, ImageDraw, ImageFont
 import io
 
@@ -104,3 +104,4 @@ if st.button("Generar y descargar imagen"):
 
 st.markdown("---")
 st.success("Cálculo completo. Puedes editar el agua sin afectar la fórmula y descargar la imagen del lote.")
+
