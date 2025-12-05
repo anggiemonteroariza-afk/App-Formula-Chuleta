@@ -106,4 +106,8 @@ if submitted:
     st.download_button(
         label="📥 Descargar tabla en imagen",
         data=imagen_tabla,
-        file_name=f"formula_chuleta_{fec_
+        file_name=f"formula_chuleta_{fecha}.png",
+        mime="image/png"
+    )
+    
+    st.success("Cálculo listo 🎉 Puedes editar el agua sin afectar los cálculos base.")
