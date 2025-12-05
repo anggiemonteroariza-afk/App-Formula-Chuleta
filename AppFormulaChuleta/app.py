@@ -1,113 +1,78 @@
 import streamlit as st
+from datetime import datetime
 import pandas as pd
-from utils.calculos import calcular_formula, recalcular_con_agua_manual
-from PIL import Image, ImageDraw, ImageFont
-import io
+from calculos import calcular_formula
+from io import BytesIO
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Fórmula Chuleta", layout="centered")
 
-st.title("🟢 Cálculo de Fórmula para Chuleta Ahumada")
+# ---------------------------------------------------------
+# CONFIGURACIÓN DE PÁGINA
+# ---------------------------------------------------------
+st.set_page_config(
+    page_title="App Fórmula Chuleta",
+    layout="centered"
+)
 
-# ---- ENTRADAS ----
-st.subheader("Datos del lote")
+st.title("📘 Calculadora de Fórmula de Chuleta")
 
-col1, col2 = st.columns(2)
 
-with col1:
+# ---------------------------------------------------------
+# FORMULARIO DE ENTRADA
+# ---------------------------------------------------------
+with st.form("formulario"):
+    fecha = st.date_input("📅 Fecha de producción", datetime.today())
+
     num_chuletas = st.number_input(
-        "Cantidad de chuletas a procesar:",
+        "Cantidad de chuletas",
         min_value=1,
-        value=1
+        step=1
     )
 
-with col2:
-    peso_chuletas = st.number_input(
-        "Peso total del lote (kg):",
-        min_value=0.0,
-        value=0.0
-    )
+    submitted = st.form_submit_button("🔍 Calcular fórmula")
 
-# ---- CÁLCULOS ----
-agua_base, porcentajes, ingredientes = calcular_formula(num_chuletas)
+# Solo calculamos cuando el usuario presiona el botón
+if submitted:
 
-# Crear DataFrame completo
-df = pd.DataFrame({
-    "Ingrediente": ["Agua potable"] + list(ingredientes.keys()),
-    "% sobre agua": [0.0] + list(porcentajes.values()),
-    "Cantidad_base_kg": [agua_base] + list(ingredientes.values())
-})
+    # Cálculo de la fórmula
+    df, agua_base = calcular_formula(num_chuletas)
 
-st.markdown("---")
-st.subheader("Ingredientes y cantidades")
+    st.subheader("📊 Resultado de la fórmula")
 
-# Agregamos columna editable para el agua
-df["Cantidad_editada_kg"] = df["Cantidad_base_kg"]
+    # Mostrar tabla directamente en Streamlit
+    st.dataframe(df, use_container_width=True)
 
-# Ubicar fila del agua
-agua_idx = df.index[df["Ingrediente"] == "Agua potable"][0]
+    st.markdown(f"💧 **Agua base total:** {agua_base} kg")
 
-nuevo_valor_agua = st.number_input(
-    "Editar cantidad de agua (kg/L):",
-    value=float(df.loc[agua_idx, "Cantidad_base_kg"]),
-    min_value=0.0
-)
 
-# No recalculamos ingredientes — solo cambiamos la vista
-df.loc[agua_idx, "Cantidad_editada_kg"] = nuevo_valor_agua
+    # ---------------------------------------------------------
+    # GENERAR IMAGEN ORDENADA COMO TABLA
+    # ---------------------------------------------------------
+    def generar_imagen_tabla(dataframe):
+        fig, ax = plt.subplots(figsize=(8, 3 + len(dataframe) * 0.4))
 
-# Mostrar tabla final
-st.dataframe(
-    df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
-        .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
-        .style.format({
-            "Cantidad (kg)": "{:.3f}",
-            "% sobre agua": "{:.2f}"
-        })
-)
+        ax.axis('off')
+        tabla = ax.table(
+            cellText=dataframe.values,
+            colLabels=dataframe.columns,
+            cellLoc='center',
+            loc='center'
+        )
 
-st.markdown("---")
+        tabla.auto_set_font_size(False)
+        tabla.set_fontsize(9)
+        tabla.scale(1, 1.3)
 
-# ---- GENERAR IMAGEN ----
-st.subheader("Descargar imagen del lote")
+        buf = BytesIO()
+        plt.savefig(buf, format="png", dpi=300, bbox_inches="tight")
+        buf.seek(0)
+        return buf
 
-if st.button("Generar y descargar imagen"):
-    # Crear imagen
-    img = Image.new("RGB", (900, 1400), "white")
-    draw = ImageDraw.Draw(img)
-
-    try:
-        font = ImageFont.truetype("arial.ttf", 28)
-    except:
-        font = ImageFont.load_default()
-
-    y = 40
-    draw.text((40, y), f"LOTE DE CHULETAS", font=font, fill="black")
-    y += 50
-    draw.text((40, y), f"Cantidad de chuletas: {num_chuletas}", font=font, fill="black")
-    y += 40
-    draw.text((40, y), f"Peso total ingresado: {peso_chuletas} kg", font=font, fill="black")
-    y += 60
-
-    draw.text((40, y), "Ingredientes (solo número y cantidad):", font=font, fill="black")
-    y += 40
-
-    for i, row in df.iterrows():
-        numero = i + 1
-        cantidad = row["Cantidad_editada_kg"]
-        txt = f"{numero}.  {cantidad:.3f} kg"
-        draw.text((40, y), txt, font=font, fill="black")
-        y += 35
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
+    imagen_tabla = generar_imagen_tabla(df)
 
     st.download_button(
-        label="Descargar imagen",
-        data=buffer,
-        file_name="lote_chuletas.png",
+        label="📥 Descargar tabla en imagen",
+        data=imagen_tabla,
+        file_name=f"formula_chuleta_{fecha}.png",
         mime="image/png"
     )
-
-st.markdown("---")
-st.success("Cálculo completo. Puedes editar el agua sin afectar los ingredientes y descargar la imagen del lote.")
