@@ -1,120 +1,141 @@
 import streamlit as st
+from datetime import datetime
 import pandas as pd
-from PIL import Image, ImageDraw, ImageFont
-import io
-import datetime
+from utils.calculos import obtener_calculo_completo, PORCENTAJES_BASE
+from io import BytesIO
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Fórmula Chuleta", layout="wide")
+# ---------------------------------------------------------
+# CONFIGURACIÓN DE PÁGINA
+# ---------------------------------------------------------
+st.set_page_config(
+    page_title="App Fórmula Chuleta",
+    layout="centered"
+)
 
-st.title("🧪 Calculadora de Fórmula de Chuletas")
+st.title("📘 Calculadora de Fórmula de Chuleta")
 
-# ---------------------------
-# INGREDIENTES ORIGINALES (16)
-# ---------------------------
-ingredientes = [
-    {"ingrediente": "Carne de cerdo", "porcentaje": 0.57},
-    {"ingrediente": "Hielo", "porcentaje": 0.18},
-    {"ingrediente": "Almidón de maíz", "porcentaje": 0.05},
-    {"ingrediente": "Harina de trigo", "porcentaje": 0.03},
-    {"ingrediente": "Sal", "porcentaje": 0.015},
-    {"ingrediente": "Fosfatos", "porcentaje": 0.003},
-    {"ingrediente": "Azúcar", "porcentaje": 0.005},
-    {"ingrediente": "Ajo", "porcentaje": 0.004},
-    {"ingrediente": "Cebolla", "porcentaje": 0.004},
-    {"ingrediente": "Pimienta", "porcentaje": 0.001},
-    {"ingrediente": "Comino", "porcentaje": 0.001},
-    {"ingrediente": "Color caramelo", "porcentaje": 0.002},
-    {"ingrediente": "Conservante", "porcentaje": 0.001},
-    {"ingrediente": "Saborizante", "porcentaje": 0.002},
-    {"ingrediente": "Estabilizante", "porcentaje": 0.002},
-    {"ingrediente": "Agua", "porcentaje": 0.1}  # Se puede editar PERO NO afecta cálculos
-]
+# ---------------------------------------------------------
+# FORMULARIO DE ENTRADA
+# ---------------------------------------------------------
+with st.form("formulario"):
+    fecha = st.date_input("📅 Fecha de producción", datetime.today())
 
-# ---------------------------
-# ENTRADAS
-# ---------------------------
-col1, col2, col3 = st.columns(3)
+    num_chuletas = st.number_input(
+        "Cantidad de chuletas",
+        min_value=1,
+        step=1
+    )
 
-with col1:
-    fecha = st.date_input("Fecha del proceso", datetime.date.today())
+    peso_chuletas = st.number_input(
+        "Peso total del lote (kg)",
+        min_value=0.0,
+        step=0.1
+    )
 
-with col2:
-    cantidad_chuletas = st.number_input("Cantidad de chuletas", min_value=1, value=1)
+    submitted = st.form_submit_button("🔍 Calcular fórmula")
 
-with col3:
-    peso_chuleta = st.number_input("Peso por chuleta (kg)", min_value=0.01, value=0.15)
+# ---------------------------------------------------------
+# PROCESAMIENTO
+# ---------------------------------------------------------
+if submitted:
 
-peso_total = cantidad_chuletas * peso_chuleta
+    # 1️⃣ Obtener cálculos base
+    agua_total, ingredientes = obtener_calculo_completo(num_chuletas)
 
-st.markdown(f"### 🟦 Peso total: **{peso_total:.3f} kg**")
+    st.subheader("📊 Resultado de la fórmula")
 
-# --------------------------------
-# PERMITIR EDITAR SOLO EL AGUA
-# --------------------------------
-for ingr in ingredientes:
-    if ingr["ingrediente"] == "Agua":
-        nuevo = st.number_input("Editar agua (%)", value=float(ingr["porcentaje"]), format="%.3f")
-        ingr["porcentaje"] = nuevo  # Solo cambia lo visual, NO afecta cálculos
+    # Ordenar datos para tabla principal
+    df = pd.DataFrame({
+        "Ingrediente": ["Agua potable"] + list(ingredientes.keys()),
+        "% sobre agua": ["-"] + list(PORCENTAJES_BASE.values()),
+        "Cantidad (kg)": [agua_total] + list(ingredientes.values())
+    })
 
-# ---------------------------
-# CÁLCULOS DE FORMULACIÓN
-# ---------------------------
-df = pd.DataFrame({
-    "Ingrediente": [i["ingrediente"] for i in ingredientes],
-    "Porcentaje (%)": [i["porcentaje"] for i in ingredientes]
-})
+    # Copia editable SOLO del agua
+    df["Cantidad_editada_kg"] = df["Cantidad (kg)"]
+    idx_agua = 0
 
-df["Cantidad (kg)"] = df["Porcentaje (%)"] * peso_total
-df["Cantidad (kg)"] = df["Cantidad (kg)"].round(3)
+    nuevo_agua = st.number_input(
+        "💧 Editar agua manual (kg/L):",
+        value=float(df.loc[idx_agua, "Cantidad (kg)"]),
+        min_value=0.0
+    )
 
-st.subheader("📋 Fórmula calculada")
-st.dataframe(df, use_container_width=True)
+    df.loc[idx_agua, "Cantidad_editada_kg"] = nuevo_agua
 
-# ---------------------------
-# GENERAR IMAGEN
-# ---------------------------
-if st.button("Generar imagen de fórmula"):
-    img = Image.new("RGB", (900, 1300), color="white")
-    draw = ImageDraw.Draw(img)
+    # Guardamos esta versión para la imagen
+    df_display = df.copy()
 
-    try:
-        font_title = ImageFont.truetype("arial.ttf", 40)
-        font_text = ImageFont.truetype("arial.ttf", 30)
-    except:
-        font_title = ImageFont.load_default()
-        font_text = ImageFont.load_default()
+    # ---------------------------------------------------------
+    # MOSTRAR TABLA SIN ERROR
+    # ---------------------------------------------------------
+    st.dataframe(
+        df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
+        .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
+        .style.format({"Cantidad (kg)": "{:.3f}"})
+    )
 
-    # Título
-    draw.text((50, 30), "FÓRMULA DE CHULETAS", fill="black", font=font_title)
+    st.markdown(f"💧 **Agua base total calculada:** {agua_total:.3f} kg")
 
-    # Datos generales
-    draw.text((50, 120), f"Fecha: {fecha}", fill="black", font=font_text)
-    draw.text((50, 170), f"Cantidad de chuletas: {cantidad_chuletas}", fill="black", font=font_text)
-    draw.text((50, 220), f"Peso unitario: {peso_chuleta:.3f} kg", fill="black", font=font_text)
-    draw.text((50, 270), f"Peso total: {peso_total:.3f} kg", fill="black", font=font_text)
+    # ---------------------------------------------------------
+    # GENERAR IMAGEN ORDENADA COMO TABLA
+    # ---------------------------------------------------------
+    def generar_imagen_tabla(dataframe, fecha, num_chuletas, peso_chuletas):
 
-    # Tabla de ingredientes
-    draw.text((50, 340), "No.     Cantidad (kg)", fill="black", font=font_text)
+        # Numeración inicia en 0
+        df_img = pd.DataFrame({
+            "N°": range(0, len(dataframe)),
+            "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
+        })
 
-    y = 390
-    for idx, row in df.iterrows():
-        numero = int(idx)  # 🔥 AHORA SIEMPRE ENTERO DESDE 0
-        cantidad = f"{row['Cantidad (kg)']:.3f}"
+        fig, ax = plt.subplots(figsize=(8, 4 + len(df_img) * 0.35))
 
-        draw.text((50, y), f"{numero}", fill="black", font=font_text)
-        draw.text((200, y), cantidad, fill="black", font=font_text)
+        ax.axis('off')
 
-        y += 40
+        # Encabezado superior
+        encabezado = (
+            f"Fecha: {fecha}\n"
+            f"Cantidad de chuletas: {num_chuletas}\n"
+            f"Peso total del lote: {peso_chuletas} kg"
+        )
 
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
+        ax.text(
+            0.5, 1.05, encabezado,
+            ha='center', va='top',
+            fontsize=11, transform=ax.transAxes
+        )
 
-    st.image(img, caption="Fórmula generada")
+        tabla = ax.table(
+            cellText=df_img.values,
+            colLabels=df_img.columns,
+            cellLoc='center',
+            loc='center'
+        )
 
+        tabla.auto_set_font_size(False)
+        tabla.set_fontsize(9)
+        tabla.scale(1, 1.2)
+
+        buf = BytesIO()
+        plt.savefig(buf, format="png", dpi=300, bbox_inches="tight")
+        buf.seek(0)
+        return buf
+
+    # Crear imagen final
+    imagen_tabla = generar_imagen_tabla(
+        dataframe=df_display,
+        fecha=fecha,
+        num_chuletas=num_chuletas,
+        peso_chuletas=peso_chuletas
+    )
+
+    # Botón de descarga
     st.download_button(
-        label="Descargar imagen",
-        data=buffer,
-        file_name="formula_chuletas.png",
+        label="📥 Descargar tabla en imagen",
+        data=imagen_tabla,
+        file_name=f"formula_chuleta_{fecha}.png",
         mime="image/png"
     )
+
+    st.success("Cálculo listo 🎉 Puedes editar el agua sin afectar los cálculos base.")
