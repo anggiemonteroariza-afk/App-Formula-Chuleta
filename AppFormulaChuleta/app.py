@@ -20,6 +20,7 @@ st.title("📘 Calculadora de Fórmula de Chuleta")
 # FORMULARIO DE ENTRADA
 # ---------------------------------------------------------
 with st.form("formulario"):
+
     fecha = st.date_input("📅 Fecha de producción", datetime.today())
 
     num_chuletas = st.number_input(
@@ -28,18 +29,33 @@ with st.form("formulario"):
         step=1
     )
 
+    peso_chuleta = st.number_input(
+        "Peso por chuleta (kg)",
+        min_value=0.01,
+        value=0.160,
+        step=0.001,
+        format="%.3f"
+    )
+
     submitted = st.form_submit_button("🔍 Calcular fórmula")
 
+
 # ---------------------------------------------------------
-# SOLO CALCULAR SI SE PRESIONA EL BOTÓN
+# EJECUTAR CÁLCULO
 # ---------------------------------------------------------
 if submitted:
+
+    # Peso total real
+    peso_total_lote = num_chuletas * peso_chuleta
 
     agua_total, ingredientes = obtener_calculo_completo(num_chuletas)
 
     st.subheader("📊 Resultado de la fórmula")
 
-    # Construir DataFrame para mostrarlo en Streamlit
+    st.markdown(f"**🐖 Peso total del lote:** {peso_total_lote:.3f} kg")
+    st.markdown(f"💧 **Agua total:** {agua_total:.3f} kg")
+
+    # Armar la tabla para mostrar
     df = pd.DataFrame({
         "Ingrediente": [i["ingrediente"] for i in ingredientes],
         "Porcentaje (%)": [i["porcentaje"] for i in ingredientes],
@@ -48,21 +64,19 @@ if submitted:
 
     st.dataframe(df, use_container_width=True)
 
-    st.markdown(f"💧 **Agua total:** {agua_total:.3f} kg")
-
 
     # ---------------------------------------------------------
-    # GENERAR IMAGEN ORDENADA COMO TABLA
+    # GENERAR IMAGEN BONITA DE TABLA
     # ---------------------------------------------------------
     def generar_imagen_tabla(dataframe):
         fig, ax = plt.subplots(figsize=(8, 3 + len(dataframe) * 0.4))
-
         ax.axis('off')
+
         tabla = ax.table(
             cellText=dataframe.values,
             colLabels=dataframe.columns,
-            cellLoc='center',
-            loc='center'
+            loc='center',
+            cellLoc='center'
         )
 
         tabla.auto_set_font_size(False)
@@ -80,5 +94,4 @@ if submitted:
         label="📥 Descargar tabla en imagen",
         data=imagen_tabla,
         file_name=f"formula_chuleta_{fecha}.png",
-        mime="image/png"
-    )
+        mime="image/pn
