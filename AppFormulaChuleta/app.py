@@ -67,9 +67,14 @@ if submitted:
     # Guardamos esta versión para la imagen
     df_display = df.copy()
 
-    # Mostrar tabla con estilo
+    # ---------------------------------------------------------
+    # FIX DEL ERROR DE FORMATTER — evitar formatear guiones (-)
+    # ---------------------------------------------------------
+    df_safe = df.copy()
+    df_safe["% sobre agua"] = df_safe["% sobre agua"].replace("-", "")
+
     st.dataframe(
-        df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
+        df_safe[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
         .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
         .style.format({"Cantidad (kg)": "{:.3f}", "% sobre agua": "{:.2f}"})
     )
@@ -81,7 +86,7 @@ if submitted:
     # ---------------------------------------------------------
     def generar_imagen_tabla(dataframe, fecha, num_chuletas, peso_chuletas):
 
-        # Numeración inicia en 0 (ajuste solicitado)
+        # Numeración inicia en 0
         df_img = pd.DataFrame({
             "N°": range(0, len(dataframe)),
             "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
