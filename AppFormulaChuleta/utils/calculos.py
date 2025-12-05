@@ -24,34 +24,28 @@ PORCENTAJES_BASE = {
 
 def obtener_calculo_completo(cantidad_chuletas: int, factor_agua: float = 3.0):
     """
-    1. Calcula el agua base con la fórmula original.
-    2. Luego calcula los ingredientes según % sobre agua.
-    3. Devuelve valores en KILOS.
+    1. Calcula el agua base (en L); tratamos 1 L ~= 1 kg, por lo tanto lo devolvemos como kg.
+    2. Calcula los ingredientes en KILOS usando los porcentajes sobre el agua.
+    Devuelve: agua_kg (float), ingredientes_kilos (dict nombre->kg), porcentajes (dict)
     """
-    agua = calcular_agua(cantidad_chuletas, factor_agua)
+    # calcular_agua devuelve litros (porque factor_agua está en L/chuleta)
+    agua_litros = calcular_agua(cantidad_chuletas, factor_agua)  # ej: 3 * n
+    agua_kg = float(agua_litros)  # 1 L ≈ 1 kg, lo manejamos como kg
 
-    ingredientes_gramos = calcular_ingredientes(agua, PORCENTAJES_BASE)
+    # calcular_ingredientes espera agua en (kg o L) y devuelve cantidad en la misma unidad (kg)
+    ingredientes_kilos = calcular_ingredientes(agua_kg, PORCENTAJES_BASE)  # ya retorna kg
 
-    # Convertimos todo a kilos para la app
-    ingredientes_kilos = {k: round(v / 1000, 4) for k, v in ingredientes_gramos.items()}
+    # asegurar redondeo razonable
+    ingredientes_kilos = {k: round(v, 6) for k, v in ingredientes_kilos.items()}
 
-    agua_kilos = round(agua / 1000, 4)
-
-    return agua_kilos, ingredientes_kilos
+    return agua_kg, ingredientes_kilos, PORCENTAJES_BASE
 
 
-def recalcular_con_agua_manual(agua_manual_kilos: float):
+def recalcular_con_agua_manual(agua_manual_kg: float):
     """
-    Si el usuario ingresa un valor de agua manual en KILOS:
-    - Recalcula los ingredientes con ese valor.
-    - No toca la cantidad de chuletas.
-    - Devuelve todo en kilos.
+    Recalcula los ingredientes a partir de un agua manual (kg).
+    Devuelve dict nombre->kg y porcentajes.
     """
-    # Convertimos a gramos para usar el cargador original
-    agua_gramos = agua_manual_kilos * 1000
-
-    ingredientes_gramos = calcular_ingredientes(agua_gramos, PORCENTAJES_BASE)
-
-    ingredientes_kilos = {k: round(v / 1000, 4) for k, v in ingredientes_gramos.items()}
-
-    return ingredientes_kilos
+    ingredientes_kilos = calcular_ingredientes(agua_manual_kg, PORCENTAJES_BASE)
+    ingredientes_kilos = {k: round(v, 6) for k, v in ingredientes_kilos.items()}
+    return ingredientes_kilos, PORCENTAJES_BASE
