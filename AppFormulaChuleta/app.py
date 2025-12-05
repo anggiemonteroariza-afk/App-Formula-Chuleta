@@ -101,7 +101,6 @@ if submitted:
     "N°": range(0, len(dataframe)),   # inicia en 0
     "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
 })
-
         fig, ax = plt.subplots(figsize=(8, 4 + len(df_img) * 0.35))
         ax.axis('off')
 
@@ -151,4 +150,5 @@ if submitted:
     )
 
     st.success("Cálculo listo 🎉 Puedes editar el agua sin afectar los cálculos base.")
+
 
