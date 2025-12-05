@@ -1,6 +1,7 @@
 # utils/calculos.py
 
-# Porcentajes reales de tu fórmula (16 ingredientes)
+from utils.loader import calcular_agua, calcular_ingredientes
+
 PORCENTAJES_BASE = {
     "Sal nitral": 0.80,
     "Carragenina": 0.50,
@@ -20,35 +21,20 @@ PORCENTAJES_BASE = {
     "Pirofosfato": 1.50
 }
 
-FACTOR_AGUA = 3.0  # litros/kg de chuleta
 
-
-def calcular_agua(cantidad_chuletas: int, factor_agua: float = FACTOR_AGUA) -> float:
-    """
-    Devuelve la cantidad de agua en kg/L.
-    """
-    return cantidad_chuletas * factor_agua
-
-
-def calcular_ingredientes(agua_kg: float, porcentajes: dict) -> dict:
-    """
-    Calcula los ingredientes en kg según % sobre el agua.
-    """
-    resultados = {}
-    for nombre, porcentaje in porcentajes.items():
-        resultados[nombre] = agua_kg * (porcentaje / 100)
-    return resultados
-
-
-def obtener_calculo_completo(cantidad_chuletas: int):
-    """
-    Devuelve:
-    - agua_base (kg)
-    - porcentajes (dict)
-    - ingredientes calculados en kg (dict)
-    """
-    agua = calcular_agua(cantidad_chuletas)
+def obtener_calculo_completo(cantidad_chuletas: int, factor_agua: float = 3.0):
+    agua = calcular_agua(cantidad_chuletas, factor_agua)
     ingredientes = calcular_ingredientes(agua, PORCENTAJES_BASE)
     return agua, PORCENTAJES_BASE, ingredientes
 
 
+def calcular_formula(cantidad_chuletas: int):
+    """
+    Envuelve todo en una sola función para app.py
+    """
+    return obtener_calculo_completo(cantidad_chuletas)
+
+
+def recalcular_con_agua_manual(agua_manual: float):
+    ingredientes = calcular_ingredientes(agua_manual, PORCENTAJES_BASE)
+    return ingredientes
