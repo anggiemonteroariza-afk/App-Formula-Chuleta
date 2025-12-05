@@ -94,4 +94,5 @@ if submitted:
         label="📥 Descargar tabla en imagen",
         data=imagen_tabla,
         file_name=f"formula_chuleta_{fecha}.png",
-        mime="image/pn
+        mime="image/png"
+
