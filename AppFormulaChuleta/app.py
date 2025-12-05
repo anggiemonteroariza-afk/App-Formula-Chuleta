@@ -13,7 +13,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("📘 Calculadora de Fórmula de Chuleta")
+st.title("📘 Fórmula de Chuleta")
 
 # ---------------------------------------------------------
 # FORMULARIO DE ENTRADA
@@ -97,10 +97,10 @@ if submitted:
     def generar_imagen_tabla(dataframe, fecha, num_chuletas, peso_chuletas):
         # dataframe debe tener la columna "Cantidad_editada_kg" original o numérica
         # Construimos df_img con consecutivo y cantidad redondeada a 3 decimales
-        df_img = pd.DataFrame({
-            "N°": range(1, len(dataframe) + 1),
-            "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
-        })
+      df_img = pd.DataFrame({
+    "N°": range(0, len(dataframe)),   # inicia en 0
+    "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
+})
 
         fig, ax = plt.subplots(figsize=(8, 4 + len(df_img) * 0.35))
         ax.axis('off')
@@ -151,3 +151,4 @@ if submitted:
     )
 
     st.success("Cálculo listo 🎉 Puedes editar el agua sin afectar los cálculos base.")
+
