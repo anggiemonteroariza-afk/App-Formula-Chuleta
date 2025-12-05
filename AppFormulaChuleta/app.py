@@ -45,7 +45,7 @@ if submitted:
 
     st.subheader("📊 Resultado de la fórmula")
 
-    # Ordenar datos para tabla principal
+    # Ordenar datos para tabla principal (ingredientes es dict nombre->kg)
     df = pd.DataFrame({
         "Ingrediente": ["Agua potable"] + list(ingredientes.keys()),
         "% sobre agua": ["-"] + list(PORCENTAJES_BASE.values()),
@@ -64,31 +64,45 @@ if submitted:
 
     df.loc[idx_agua, "Cantidad_editada_kg"] = nuevo_agua
 
-    # Guardamos esta versión para la imagen
+    # Guardamos esta versión para la imagen / visualización
     df_display = df.copy()
 
-    # Mostrar tabla con estilo
+    # ---------------------------------------------------------
+    # LIMPIAMOS/CONVERTIMOS LAS COLUMNAS QUE SE VAN A FORMATEAR
+    # - Convertimos a numérico con errors='coerce' (saltará NaN donde estaba "-")
+    # - Mantendremos el "-" en la visualización usando lambdas en style.format
+    # ---------------------------------------------------------
+    df_display["% sobre agua_numeric"] = pd.to_numeric(df_display["% sobre agua"], errors="coerce")
+    df_display["Cantidad_editada_numeric"] = pd.to_numeric(df_display["Cantidad_editada_kg"], errors="coerce")
+
+    # Mostrar tabla con formato seguro: dejar '-' si NaN en % y mostrar cantidades con 3 decimales
+    display_df = df_display[["Ingrediente", "% sobre agua_numeric", "Cantidad_editada_numeric"]].copy()
+    display_df = display_df.rename(columns={
+        "% sobre agua_numeric": "% sobre agua",
+        "Cantidad_editada_numeric": "Cantidad (kg)"
+    })
+
     st.dataframe(
-        df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
-        .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
-        .style.format({"Cantidad (kg)": "{:.3f}", "% sobre agua": "{:.2f}"})
+        display_df.style.format({
+            "Cantidad (kg)": lambda x: f"{x:.3f}" if pd.notna(x) else "",
+            "% sobre agua": lambda x: "-" if pd.isna(x) else f"{x:.2f}"
+        })
     )
 
     st.markdown(f"💧 **Agua base total calculada:** {agua_total:.3f} kg")
 
     # ---------------------------------------------------------
-    # GENERAR IMAGEN ORDENADA COMO TABLA
+    # GENERAR IMAGEN ORDENADA COMO TABLA (solo consecutivo + cantidad con 3 decimales)
     # ---------------------------------------------------------
     def generar_imagen_tabla(dataframe, fecha, num_chuletas, peso_chuletas):
-
-        # Se reduce a secuencial + cantidad
+        # dataframe debe tener la columna "Cantidad_editada_kg" original o numérica
+        # Construimos df_img con consecutivo y cantidad redondeada a 3 decimales
         df_img = pd.DataFrame({
             "N°": range(1, len(dataframe) + 1),
             "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
         })
 
         fig, ax = plt.subplots(figsize=(8, 4 + len(df_img) * 0.35))
-
         ax.axis('off')
 
         # Encabezado superior
@@ -120,7 +134,7 @@ if submitted:
         buf.seek(0)
         return buf
 
-    # Crear imagen final
+    # Crear imagen final usando la vista con la edición del agua
     imagen_tabla = generar_imagen_tabla(
         dataframe=df_display,
         fecha=fecha,
