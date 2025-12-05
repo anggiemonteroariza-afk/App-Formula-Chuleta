@@ -15,7 +15,6 @@ st.set_page_config(
 
 st.title("📘 Calculadora de Fórmula de Chuleta")
 
-
 # ---------------------------------------------------------
 # FORMULARIO DE ENTRADA
 # ---------------------------------------------------------
@@ -66,11 +65,23 @@ if submitted:
     # Actualizar solo la vista
     df.loc[idx_agua, "Cantidad_editada_kg"] = nuevo_agua
 
-    # Mostrar tabla
+    # ---------------------------------------------------------
+    # PREPARAR TABLA PARA MOSTRAR SIN ERRORES
+    # ---------------------------------------------------------
+    df_display = df.copy()
+
+    # Convertir columnas a numérico excepto los "-"
+    df_display["% sobre agua"] = pd.to_numeric(df_display["% sobre agua"], errors="coerce")
+    df_display["Cantidad_editada_kg"] = pd.to_numeric(df_display["Cantidad_editada_kg"], errors="coerce")
+
+    # Mostrar tabla con formato seguro
     st.dataframe(
-        df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
+        df_display[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
         .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
-        .style.format({"Cantidad (kg)": "{:.3f}", "% sobre agua": "{:.2f}"})
+        .style.format({
+            "Cantidad (kg)": "{:.3f}",
+            "% sobre agua": lambda x: "-" if pd.isna(x) else "{:.2f}".format(x)
+        })
     )
 
     st.markdown(f"💧 **Agua base total calculada:** {agua_total:.3f} kg")
@@ -99,7 +110,7 @@ if submitted:
         return buf
 
     imagen_tabla = generar_imagen_tabla(
-        df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
+        df_display[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
         .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
     )
 
@@ -109,5 +120,5 @@ if submitted:
         file_name=f"formula_chuleta_{fecha}.png",
         mime="image/png"
     )
-    
+
     st.success("Cálculo listo 🎉 Puedes editar el agua sin afectar los cálculos base.")
