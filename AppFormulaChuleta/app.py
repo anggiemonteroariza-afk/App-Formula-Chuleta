@@ -28,16 +28,21 @@ with col2:
     )
 
 # ---- CÁLCULOS BASE ----
-agua_base, ingredientes_dict = obtener_calculo_completo(num_chuletas)
+# obtener_calculo_completo ahora devuelve: agua_kg, ingredientes_kilos, porcentajes
+agua_base, ingredientes_kilos, porcentajes = obtener_calculo_completo(num_chuletas)
 
-# Crear DataFrame base
+# Construimos DataFrame: primera fila Agua, luego ingredientes con % fijo y cantidad (kg)
+ingredientes_list = ["Agua potable"] + list(porcentajes.keys())
+porcentajes_list = ["-"] + [porcentajes[k] for k in porcentajes.keys()]
+cantidades_base = [agua_base] + [ingredientes_kilos[k] for k in porcentajes.keys()]
+
 df = pd.DataFrame({
-    "Ingrediente": ["Agua potable"] + list(ingredientes_dict.keys()),
-    "% sobre agua": ["-"] + list(ingredientes_dict.values()),
-    "Cantidad_base_kg": [agua_base] + [ (p/100) * agua_base for p in ingredientes_dict.values() ]
+    "Ingrediente": ingredientes_list,
+    "% sobre agua": porcentajes_list,
+    "Cantidad_base_kg": cantidades_base
 })
 
-# Copia editable
+# Columna editable para mostrar (sin afectar cálculos base)
 df["Cantidad_editada_kg"] = df["Cantidad_base_kg"].copy()
 
 st.markdown("---")
@@ -49,17 +54,19 @@ agua_idx = df.index[df["Ingrediente"] == "Agua potable"][0]
 nuevo_valor_agua = st.number_input(
     "Editar cantidad de agua (kg/L):",
     value=float(df.loc[agua_idx, "Cantidad_base_kg"]),
-    min_value=0.0
+    min_value=0.0,
+    step=0.1,
+    format="%.3f"
 )
 
-# Solo cambia en la tabla
+# Solo cambia la vista (no recalcula ingredientes automáticamente)
 df.loc[agua_idx, "Cantidad_editada_kg"] = nuevo_valor_agua
 
-# Mostrar tabla final
+# Mostrar tabla final: % se mantiene fijo, Cantidad (kg) muestra la editada para agua y base para el resto
 st.dataframe(
     df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
         .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
-        .style.format({"Cantidad (kg)": "{:.3f}"})
+        .style.format({"Cantidad (kg)": "{:.3f}", "% sobre agua": "{:.2f}"})
 )
 
 st.markdown("---")
@@ -87,6 +94,7 @@ if st.button("Generar y descargar imagen"):
     draw.text((40, y), "Ingredientes (solo número y cantidad):", font=font, fill="black")
     y += 40
 
+    # Recorremos la vista actual (usa Cantidad_editada_kg)
     for i, row in df.iterrows():
         numero = i + 1
         cantidad = row["Cantidad_editada_kg"]
