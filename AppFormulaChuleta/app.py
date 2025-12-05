@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime
 import pandas as pd
-from utils.calculos import obtener_calculo_completo
+from calculos import obtener_calculo_completo
 from io import BytesIO
 import matplotlib.pyplot as plt
 
@@ -22,47 +22,37 @@ st.title("📘 Calculadora de Fórmula de Chuleta")
 with st.form("formulario"):
     fecha = st.date_input("📅 Fecha de producción", datetime.today())
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        num_chuletas = st.number_input(
-            "Cantidad de chuletas",
-            min_value=1,
-            step=1
-        )
-
-    with col2:
-        peso_chuletas = st.number_input(
-            "Peso total del lote (kg)",
-            min_value=0.0,
-            step=0.1
-        )
+    num_chuletas = st.number_input(
+        "Cantidad de chuletas",
+        min_value=1,
+        step=1
+    )
 
     submitted = st.form_submit_button("🔍 Calcular fórmula")
 
 # ---------------------------------------------------------
-# SOLO CALCULAMOS CUANDO EL USUARIO PRESIONA EL BOTÓN
+# SOLO CALCULAR SI SE PRESIONA EL BOTÓN
 # ---------------------------------------------------------
 if submitted:
 
-    # Cálculo principal (usa % sobre agua)
     agua_total, ingredientes = obtener_calculo_completo(num_chuletas)
-
-    # Crear DataFrame final
-    df = pd.DataFrame({
-        "Ingrediente": ["Agua potable"] + list(ingredientes.keys()),
-        "% sobre agua": [0.0] + list(ingredientes.values()),
-        "Cantidad (kg)": [agua_total] + [agua_total * (p / 100) for p in ingredientes.values()]
-    })
 
     st.subheader("📊 Resultado de la fórmula")
 
+    # Construir DataFrame para mostrarlo en Streamlit
+    df = pd.DataFrame({
+        "Ingrediente": [i["ingrediente"] for i in ingredientes],
+        "Porcentaje (%)": [i["porcentaje"] for i in ingredientes],
+        "Cantidad (kg)": [i["cantidad"] for i in ingredientes],
+    })
+
     st.dataframe(df, use_container_width=True)
 
-    st.markdown(f"💧 **Agua total calculada:** {agua_total:.3f} kg")
+    st.markdown(f"💧 **Agua total:** {agua_total:.3f} kg")
+
 
     # ---------------------------------------------------------
-    # GENERAR IMAGEN COMO TABLA
+    # GENERAR IMAGEN ORDENADA COMO TABLA
     # ---------------------------------------------------------
     def generar_imagen_tabla(dataframe):
         fig, ax = plt.subplots(figsize=(8, 3 + len(dataframe) * 0.4))
@@ -87,7 +77,7 @@ if submitted:
     imagen_tabla = generar_imagen_tabla(df)
 
     st.download_button(
-        label="📥 Descargar tabla como imagen",
+        label="📥 Descargar tabla en imagen",
         data=imagen_tabla,
         file_name=f"formula_chuleta_{fecha}.png",
         mime="image/png"
