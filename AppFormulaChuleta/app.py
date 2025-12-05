@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.calculos import obtener_calculo_completo, recalcular_con_agua_manual
+from utils.calculos import obtener_calculo_completo
 from PIL import Image, ImageDraw, ImageFont
 import io
 
@@ -27,91 +27,4 @@ with col2:
         value=0.0
     )
 
-# ---- CÁLCULOS BASE ----
-# obtener_calculo_completo ahora devuelve: agua_kg, ingredientes_kilos, porcentajes
-agua_base, ingredientes_kilos, porcentajes = obtener_calculo_completo(num_chuletas)
-
-# Construimos DataFrame: primera fila Agua, luego ingredientes con % fijo y cantidad (kg)
-ingredientes_list = ["Agua potable"] + list(porcentajes.keys())
-porcentajes_list = ["-"] + [porcentajes[k] for k in porcentajes.keys()]
-cantidades_base = [agua_base] + [ingredientes_kilos[k] for k in porcentajes.keys()]
-
-df = pd.DataFrame({
-    "Ingrediente": ingredientes_list,
-    "% sobre agua": porcentajes_list,
-    "Cantidad_base_kg": cantidades_base
-})
-
-# Columna editable para mostrar (sin afectar cálculos base)
-df["Cantidad_editada_kg"] = df["Cantidad_base_kg"].copy()
-
-st.markdown("---")
-st.subheader("Ingredientes y cantidades")
-
-# ------- Edición del agua SIN alterar los cálculos -------
-agua_idx = df.index[df["Ingrediente"] == "Agua potable"][0]
-
-nuevo_valor_agua = st.number_input(
-    "Editar cantidad de agua (kg/L):",
-    value=float(df.loc[agua_idx, "Cantidad_base_kg"]),
-    min_value=0.0,
-    step=0.1,
-    format="%.3f"
-)
-
-# Solo cambia la vista (no recalcula ingredientes automáticamente)
-df.loc[agua_idx, "Cantidad_editada_kg"] = nuevo_valor_agua
-
-# Mostrar tabla final: % se mantiene fijo, Cantidad (kg) muestra la editada para agua y base para el resto
-st.dataframe(
-    df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
-        .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
-        .style.format({"Cantidad (kg)": "{:.3f}", "% sobre agua": "{:.2f}"})
-)
-
-st.markdown("---")
-
-# ---- GENERAR IMAGEN ----
-st.subheader("Descargar imagen del lote")
-
-if st.button("Generar y descargar imagen"):
-    img = Image.new("RGB", (900, 1400), "white")
-    draw = ImageDraw.Draw(img)
-
-    try:
-        font = ImageFont.truetype("arial.ttf", 28)
-    except:
-        font = ImageFont.load_default()
-
-    y = 40
-    draw.text((40, y), "LOTE DE CHULETAS", font=font, fill="black")
-    y += 50
-    draw.text((40, y), f"Cantidad de chuletas: {num_chuletas}", font=font, fill="black")
-    y += 40
-    draw.text((40, y), f"Peso total ingresado: {peso_chuletas} kg", font=font, fill="black")
-    y += 60
-
-    draw.text((40, y), "Ingredientes (solo número y cantidad):", font=font, fill="black")
-    y += 40
-
-    # Recorremos la vista actual (usa Cantidad_editada_kg)
-    for i, row in df.iterrows():
-        numero = i + 1
-        cantidad = row["Cantidad_editada_kg"]
-        txt = f"{numero}.  {cantidad:.3f} kg"
-        draw.text((40, y), txt, font=font, fill="black")
-        y += 35
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-
-    st.download_button(
-        label="Descargar imagen",
-        data=buffer,
-        file_name="lote_chuletas.png",
-        mime="image/png"
-    )
-
-st.markdown("---")
-st.success("Cálculo completo. Puedes editar el agua sin afectar la fórmula y descargar la imagen del lote.")
+# ---- CÁLCULO
