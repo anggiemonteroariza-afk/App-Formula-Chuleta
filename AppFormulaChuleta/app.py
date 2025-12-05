@@ -68,15 +68,12 @@ if submitted:
     df_display = df.copy()
 
     # ---------------------------------------------------------
-    # FIX DEL ERROR DE FORMATTER — evitar formatear guiones (-)
+    # MOSTRAR TABLA SIN ERROR
     # ---------------------------------------------------------
-    df_safe = df.copy()
-    df_safe["% sobre agua"] = df_safe["% sobre agua"].replace("-", "")
-
     st.dataframe(
-        df_safe[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
+        df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
         .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
-        .style.format({"Cantidad (kg)": "{:.3f}", "% sobre agua": "{:.2f}"})
+        .style.format({"Cantidad (kg)": "{:.3f}"})
     )
 
     st.markdown(f"💧 **Agua base total calculada:** {agua_total:.3f} kg")
