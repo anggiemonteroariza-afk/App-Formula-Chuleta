@@ -125,4 +125,15 @@ if submitted:
         dataframe=df_display,
         fecha=fecha,
         num_chuletas=num_chuletas,
-        peso_chuletas=peso_chulet
+        peso_chuletas=peso_chuletas
+    )
+
+    # Botón de descarga
+    st.download_button(
+        label="📥 Descargar tabla en imagen",
+        data=imagen_tabla,
+        file_name=f"formula_chuleta_{fecha}.png",
+        mime="image/png"
+    )
+
+    st.success("Cálculo listo 🎉 Puedes editar el agua sin afectar los cálculos base.")
