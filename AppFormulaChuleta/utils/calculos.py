@@ -1,7 +1,6 @@
 # utils/calculos.py
 
-from utils.loader import calcular_agua, calcular_ingredientes
-
+# Porcentajes reales de tu fórmula (% sobre el agua)
 PORCENTAJES_BASE = {
     "Sal nitral": 0.80,
     "Carragenina": 0.50,
@@ -21,20 +20,8 @@ PORCENTAJES_BASE = {
     "Pirofosfato": 1.50
 }
 
+# ---------------------------------------------------------
+#  CÁLCULO PRINCIPAL USADO POR LA APP
+# ---------------------------------------------------------
 
-def obtener_calculo_completo(cantidad_chuletas: int, factor_agua: float = 3.0):
-    agua = calcular_agua(cantidad_chuletas, factor_agua)
-    ingredientes = calcular_ingredientes(agua, PORCENTAJES_BASE)
-    return agua, PORCENTAJES_BASE, ingredientes
-
-
-def calcular_formula(cantidad_chuletas: int):
-    """
-    Envuelve todo en una sola función para app.py
-    """
-    return obtener_calculo_completo(cantidad_chuletas)
-
-
-def recalcular_con_agua_manual(agua_manual: float):
-    ingredientes = calcular_ingredientes(agua_manual, PORCENTAJES_BASE)
-    return ingredientes
+def obtener_calculo_completo(cantidad_chuletas: int, factor_a
