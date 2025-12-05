@@ -1,64 +1,49 @@
 import pandas as pd
+from utils.loader import calcular_agua, calcular_ingredientes
 
 # ------------------------------------------
-# CONFIGURACIÓN
+# PORCENTAJES ORIGINALES (16 INGREDIENTES)
 # ------------------------------------------
-PESO_CHULETA = 0.160  # kg por chuleta
+PORCENTAJES_BASE = {
+    "Sal nitral": 0.80,
+    "Carragenina": 0.50,
+    "Tripolifosfato": 3.19,
+    "Bensopro (EMBAC)": 0.36,
+    "Proteína Supra": 1.00,
+    "Almidón de trigo": 1.82,
+    "Goma xantana": 0.04,
+    "Excelpro": 0.83,
+    "Jamón California": 0.89,
+    "Humo P-50": 0.05,
+    "Eritorbato de sodio": 1.00,
+    "Sal común": 1.82,
+    "Saborizante tocineta": 0.53,
+    "Adobo tocino": 0.18,
+    "Fibragel MT": 1.00,
+    "Pirofosfato": 1.50
+}
 
-
 # ------------------------------------------
-# FUNCIÓN PRINCIPAL DE CÁLCULO
+# FUNCIÓN PRINCIPAL
 # ------------------------------------------
-def calcular_formula(num_chuletas):
+def obtener_calculo_completo(cantidad_chuletas: int, factor_agua: float = 3.0):
     """
-    Calcula los valores principales (tabla) para la fórmula de chuletas.
-    Retorna:
-      - DataFrame con ingredientes y cantidades
-      - agua_total en litros
+    Calcula:
+      - Agua base
+      - Ingredientes => % sobre agua
     """
-
-    peso_total = num_chuletas * PESO_CHULETA
-
-    ingredientes = {
-        "Ingrediente": [
-            "Agua",
-            "Sal",
-            "Azúcar",
-            "Fosfatos",
-            "Eritorbato",
-            "Nitrito",
-        ],
-        "Porcentaje": [10, 2, 1, 0.3, 0.05, 0.015],  # base estándar
-    }
-
-    df = pd.DataFrame(ingredientes)
-    df["Cantidad (kg)"] = (df["Porcentaje"] / 100) * peso_total
-
-    agua_total = df.loc[df["Ingrediente"] == "Agua", "Cantidad (kg)"].iloc[0]
-
-    return df, agua_total
+    agua = calcular_agua(cantidad_chuletas, factor_agua)
+    ingredientes = calcular_ingredientes(agua, PORCENTAJES_BASE)
+    return agua, ingredientes
 
 
 # ------------------------------------------
-# FUNCIÓN PARA LA IMAGEN
+# RE-CÁLCULO CUANDO EL USUARIO MODIFICA EL AGUA
 # ------------------------------------------
-def obtener_calculo_completo(num_chuletas):
+def recalcular_con_agua_manual(agua_manual: float):
     """
-    Devuelve datos más simples para armar la imagen.
-    Retorna:
-        - agua_total
-        - lista de ingredientes con cantidades
+    Recalcula ingredientes cuando el usuario cambia el agua manualmente.
+    NO se toca la cantidad de chuletas.
     """
-
-    df, agua_total = calcular_formula(num_chuletas)
-
-    ingredientes = [
-        {
-            "ingrediente": row["Ingrediente"],
-            "porcentaje": row["Porcentaje"],
-            "cantidad": row["Cantidad (kg)"],
-        }
-        for _, row in df.iterrows()
-    ]
-
-    return agua_total, ingredientes
+    ingredientes = calcular_ingredientes(agua_manual, PORCENTAJES_BASE)
+    return ingredientes
