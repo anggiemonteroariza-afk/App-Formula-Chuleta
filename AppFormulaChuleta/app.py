@@ -91,8 +91,11 @@ if submitted:
     imagen_tabla = generar_imagen_tabla(df)
 
     st.download_button(
-        label="📥 Descargar tabla en imagen",
-        data=imagen_tabla,
-        file_name=f"formula_chuleta_{fecha}.png",
-        mime="image/png"
+    label="📥 Descargar tabla en imagen",
+    data=imagen_tabla,
+    file_name=f"formula_chuleta_{fecha}.png",
+    mime="image/png"
+)
+
+
 
