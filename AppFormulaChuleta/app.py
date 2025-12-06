@@ -56,10 +56,14 @@ if submitted:
     df["Cantidad_editada_kg"] = df["Cantidad (kg)"]
     idx_agua = 0
 
+    # ---------------------------------------------------------
+    # CAMBIO: el input ahora sí actualiza el valor del agua
+    # ---------------------------------------------------------
     nuevo_agua = st.number_input(
         "💧 Editar agua manual (kg/L):",
         value=float(df.loc[idx_agua, "Cantidad (kg)"]),
-        min_value=0.0
+        min_value=0.0,
+        key="editar_agua"
     )
 
     df.loc[idx_agua, "Cantidad_editada_kg"] = nuevo_agua
@@ -68,7 +72,7 @@ if submitted:
     df_display = df.copy()
 
     # ---------------------------------------------------------
-    # MOSTRAR TABLA SIN ERROR
+    # MOSTRAR TABLA (no desaparece y no genera error)
     # ---------------------------------------------------------
     st.dataframe(
         df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
@@ -79,13 +83,12 @@ if submitted:
     st.markdown(f"💧 **Agua base total calculada:** {agua_total:.3f} kg")
 
     # ---------------------------------------------------------
-    # GENERAR IMAGEN ORDENADA COMO TABLA
+    # GENERAR IMAGEN — consecutivo sin decimales
     # ---------------------------------------------------------
     def generar_imagen_tabla(dataframe, fecha, num_chuletas, peso_chuletas):
 
-        # Numeración inicia en 0
         df_img = pd.DataFrame({
-            "N°": range(0, len(dataframe)),
+            "N°": list(range(len(dataframe))),  # ← SIN DECIMALES
             "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
         })
 
