@@ -60,5 +60,3 @@ output_path = "formula_generada.png"
 img.save(output_path)
 
 st.image(output_path, caption="Imagen generada", use_column_width=True)
-
-
