@@ -35,10 +35,17 @@ with st.form("formulario"):
 
     submitted = st.form_submit_button("🔍 Calcular fórmula")
 
+    # Si se presionó, guardamos una marca en session_state para que la vista persista
+    if submitted:
+        st.session_state["calculated"] = True
+
+# Mostrar si ya se calculó en este flujo (evita que editar inputs borre la tabla)
+should_show = submitted or st.session_state.get("calculated", False)
+
 # ---------------------------------------------------------
-# PROCESAMIENTO
+# PROCESAMIENTO (solo se muestra si se ha calculado)
 # ---------------------------------------------------------
-if submitted:
+if should_show:
 
     # 1️⃣ Obtener cálculos base
     agua_total, ingredientes = obtener_calculo_completo(num_chuletas)
@@ -56,26 +63,39 @@ if submitted:
     df["Cantidad_editada_kg"] = df["Cantidad (kg)"]
     idx_agua = 0
 
+    # Inicializar valor de agua editada en session_state si no existe
+    if "water_edit" not in st.session_state:
+        st.session_state["water_edit"] = float(df.loc[idx_agua, "Cantidad (kg)"])
+
     # ---------------------------------------------------------
-    # CAMBIO: el input ahora sí actualiza el valor del agua
+    # CAMBIO: input con key persistente; editarlo actualiza la vista
     # ---------------------------------------------------------
     nuevo_agua = st.number_input(
         "💧 Editar agua manual (kg/L):",
-        value=float(df.loc[idx_agua, "Cantidad (kg)"]),
+        value=st.session_state["water_edit"],
         min_value=0.0,
-        key="editar_agua"
+        step=0.001,
+        format="%.3f",
+        key="water_edit_input"
     )
 
-    df.loc[idx_agua, "Cantidad_editada_kg"] = nuevo_agua
+    # Volcar el valor persistente en session_state para que permanezca entre reruns
+    st.session_state["water_edit"] = float(nuevo_agua)
+
+    # Actualizamos solo la vista (NO recalculamos ingredientes)
+    df.loc[idx_agua, "Cantidad_editada_kg"] = st.session_state["water_edit"]
 
     # Guardamos esta versión para la imagen
     df_display = df.copy()
 
     # ---------------------------------------------------------
-    # MOSTRAR TABLA (no desaparece y no genera error)
+    # MOSTRAR TABLA: formatear sólo la columna de kilos (evita errores)
     # ---------------------------------------------------------
+    # Aseguramos que la columna a formatear sea numérica para no romper styler
+    df_display["Cantidad_editada_kg"] = pd.to_numeric(df_display["Cantidad_editada_kg"], errors="coerce").fillna(0)
+
     st.dataframe(
-        df[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
+        df_display[["Ingrediente", "% sobre agua", "Cantidad_editada_kg"]]
         .rename(columns={"Cantidad_editada_kg": "Cantidad (kg)"})
         .style.format({"Cantidad (kg)": "{:.3f}"})
     )
@@ -83,12 +103,13 @@ if submitted:
     st.markdown(f"💧 **Agua base total calculada:** {agua_total:.3f} kg")
 
     # ---------------------------------------------------------
-    # GENERAR IMAGEN — consecutivo sin decimales
+    # GENERAR IMAGEN ORDENADA COMO TABLA
     # ---------------------------------------------------------
     def generar_imagen_tabla(dataframe, fecha, num_chuletas, peso_chuletas):
 
+        # Numeración inicia en 0 y se guarda como texto sin decimales
         df_img = pd.DataFrame({
-            "N°": list(range(len(dataframe))),  # ← SIN DECIMALES
+            "N°": [str(i) for i in range(0, len(dataframe))],
             "Cantidad (kg)": dataframe["Cantidad_editada_kg"].astype(float).round(3)
         })
 
