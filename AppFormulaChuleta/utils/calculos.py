@@ -12,7 +12,7 @@ PORCENTAJES_BASE = {
     "Proteína Supra": 1.00,
     "Almidón de trigo": 1.82,
     "Goma xantana": 0.04,
-    "Excelpro": 0.83,
+    "Excelpro": 0.70,
     "Jamón California": 0.89,
     "Humo P-50": 0.05,
     "Eritorbato de sodio": 1.00,
@@ -47,3 +47,4 @@ def recalcular_con_agua_manual(agua_manual: float):
     """
     ingredientes = calcular_ingredientes(agua_manual, PORCENTAJES_BASE)
     return ingredientes
+
