@@ -20,7 +20,6 @@ PORCENTAJES_BASE = {
     "Saborizante tocineta": 0.53,
     "Adobo tocino": 0.18,
     "Fibragel MT": 1.00,
-    "Pirofosfato": 1.50
 }
 
 # ------------------------------------------
